@@ -1,0 +1,57 @@
+#!/bin/sh
+# 
+# $FreeBSD: head/net-mgmt/postgres_exporter/files/postgres_exporter.in 446121 2017-07-17 22:26:33Z bsam $
+
+# PROVIDE: postgres_exporter
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# postgres_exporter_enable (bool):	Set to NO by default
+#							Set it to YES to enable postgres_exporter
+# postgres_exporter_user (string):	Set user to run postgres_exporter
+#							Default is "%%USERS%%"
+# postgres_exporter_group (string):	Set group to run postgres_exporter
+#							Default is "%%GROUPS%%"
+# postgres_exporter_log_file (string):	Set file that postgres_exporter will log to
+#							Default is "/var/log/postgres_exporter.log"
+# postgres_exporter_bind (string): 	Set address to listen on
+#							Default is :9187
+# postgres_exporter_args (string):	Set additional command line arguments
+#							Default is ""
+
+. /etc/rc.subr
+
+name=postgres_exporter
+rcvar=postgres_exporter_enable
+
+load_rc_config $name
+
+: ${postgres_exporter_enable:=NO}
+: ${postgres_exporter_user:=postgres}
+: ${postgres_exporter_group:=postgres}
+: ${postgres_exporter_log_file=/var/log/postgres_exporter.log}
+: ${postgres_exporter_bind=:9187}
+
+pidfile=/var/run/postgres_exporter.pid
+command=/usr/sbin/daemon
+procname="%%PREFIX%%/bin/postgres_exporter"
+command_args="-p ${pidfile} /usr/bin/env ${procname} \
+				--web.listen-address ${postgres_exporter_bind} \
+                                ${postgres_exporter_args} > ${postgres_exporter_log_file} 2>&1"
+
+start_precmd=postgres_exporter_startprecmd
+
+postgres_exporter_startprecmd()
+{
+        if [ ! -e ${pidfile} ]; then
+                install -o ${postgres_exporter_user} -g ${postgres_exporter_group} /dev/null ${pidfile};
+        fi
+        if [ ! -f "${postgres_exporter_log_file}" ]; then
+                install -o ${postgres_exporter_user} -g ${postgres_exporter_group} -m 640 /dev/null ${postgres_exporter_log_file};
+        fi
+}
+
+run_rc_command "$1"

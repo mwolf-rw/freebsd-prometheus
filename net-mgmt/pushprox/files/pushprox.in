@@ -1,0 +1,57 @@
+#!/bin/sh
+# 
+# $FreeBSD: head/net-mgmt/pushprox/files/pushprox.in 446121 2017-07-17 22:26:33Z bsam $
+
+# PROVIDE: pushprox
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# pushprox_enable (bool):	Set to NO by default
+#							Set it to YES to enable pushprox
+# pushprox_user (string):	Set user to run pushprox
+#							Default is "%%USERS%%"
+# pushprox_group (string):	Set group to run pushprox
+#							Default is "%%GROUPS%%"
+# pushprox_log_file (string):	Set file that pushprox will log to
+#							Default is "/var/log/pushprox.log"
+# pushprox_bind (string): 	Set address to listen on
+#							Default is ":8080"
+# pushprox_args (string):	Set additional command line arguments
+#							Default is ""
+
+. /etc/rc.subr
+
+name=pushprox
+rcvar=pushprox_enable
+
+load_rc_config $name
+
+: ${pushprox_enable:=NO}
+: ${pushprox_user:=%%USERS%%}
+: ${pushprox_group:=%%GROUPS%%}
+: ${pushprox_log_file:=/var/log/pushprox.log}
+: ${pushprox_bind:=8080}
+
+pidfile=/var/run/pushprox.pid
+command=/usr/sbin/daemon
+procname="%%PREFIX%%/bin/pushprox"
+command_args="-p ${pidfile} /usr/bin/env ${procname} \
+				--web.listen-address=\"${pushprox_bind}\" \
+                                ${pushprox_args} > ${pushprox_log_file} 2>&1"
+
+start_precmd=pushprox_startprecmd
+
+pushprox_startprecmd()
+{
+        if [ ! -e ${pidfile} ]; then
+                install -o ${pushprox_user} -g ${pushprox_group} /dev/null ${pidfile};
+        fi
+        if [ ! -f "${pushprox_log_file}" ]; then
+                install -o ${pushprox_user} -g ${pushprox_group} -m 640 /dev/null ${pushprox_log_file};
+        fi
+}
+
+run_rc_command "$1"

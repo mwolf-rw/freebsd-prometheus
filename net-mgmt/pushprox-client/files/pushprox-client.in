@@ -1,0 +1,63 @@
+#!/bin/sh
+
+# PROVIDE: pushprox_client-client
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# pushprox_client_enable (bool):	Set to NO by default
+#							Set it to YES to enable pushprox_client
+# pushprox_client_user (string):	Set user to run pushprox_client
+#							Default is "%%USERS%%"
+# pushprox_client_group (string):	Set group to run pushprox_client
+#							Default is "%%GROUPS%%"
+# pushprox_client_log_file (string):	Set file that pushprox_client will log to
+#							Default is "/var/log/pushprox-client.log"
+# pushprox_client_proxy_url (string):	Set remote proxy URL
+#
+# pushprox_client_bind (string): 	Set address to listen on
+#							Default is :9369
+# pushprox_client_args (string):	Set additional command line arguments
+#							Default is ""
+# pushprox_client_fqdn (string):	Set FQDN to register with
+#							Default is "localhost"
+
+. /etc/rc.subr
+
+name=pushprox-client
+rcvar=pushprox_client_enable
+
+load_rc_config $name
+
+: ${pushprox_client_enable:=NO}
+: ${pushprox_client_user:=%%USERS%%}
+: ${pushprox_client_group:=%%GROUPS%%}
+: ${pushprox_client_log_file:=/var/log/pushprox-client.log}
+: ${pushprox_client_bind:=9369}
+: ${pushprox_client_proxy_url:=}
+: ${pushprox_client_fqdn:=localhost}
+
+pidfile=/var/run/pushprox-client.pid
+command=/usr/sbin/daemon
+procname="%%PREFIX%%/bin/pushprox-client"
+command_args="-p ${pidfile} /usr/bin/env ${procname} \
+				--proxy-url=\"${pushprox_client_proxy_url}\" \
+				--metrics-addr=\"${pushprox_client_bind}\" \
+				--fqdn=\"${pushprox_client_fqdn}\" \
+                                ${pushprox_client_args} > ${pushprox_client_log_file} 2>&1"
+
+start_precmd=pushprox_client_startprecmd
+
+pushprox_client_startprecmd()
+{
+        if [ ! -e ${pidfile} ]; then
+                install -o ${pushprox_client_user} -g ${pushprox_client_group} /dev/null ${pidfile};
+        fi
+        if [ ! -f "${pushprox_client_log_file}" ]; then
+                install -o ${pushprox_client_user} -g ${pushprox_client_group} -m 640 /dev/null ${pushprox_client_log_file};
+        fi
+}
+
+run_rc_command "$1"

@@ -1,0 +1,4 @@
+databases/postgres_exporter/work
+net-mgmt/pushprox/work
+net-mgmt/pushprox-client/work
+*.swp
